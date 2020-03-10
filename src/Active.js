@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, useMemo } from "react";
+import React, { createContext, useState, useContext } from "react";
 
 export const ActiveContext = createContext({
   active: null
@@ -6,31 +6,32 @@ export const ActiveContext = createContext({
 
 export const SetActiveContext = createContext(null);
 
-const ActiveProviderInner = React.memo(({ active, children }) => (
-  <ActiveContext.Provider value={active} children={children} />
-));
-
-export const ActiveProvider = ({ children }) => {
+export const ActiveState = ({ children }) => {
   const [active, setActive] = useState(null);
-  return useMemo(
-    () => (
-      <SetActiveContext.Provider value={setActive}>
-        <ActiveProviderInner active={active} children={children} />
-      </SetActiveContext.Provider>
-    ),
-    [active, setActive, children]
+  return (
+    <ActiveProvider active={active} setActive={setActive} children={children} />
   );
 };
 
-export const HoveredOption = ({ id, hovered, ...props }) => {
+const ActiveProvider = React.memo(({ active, setActive, children }) => (
+  <ActiveContext.Provider value={active}>
+    <SetActiveProvider setActive={setActive} children={children} />
+  </ActiveContext.Provider>
+));
+
+const SetActiveProvider = React.memo(({ setActive, children }) => (
+  <SetActiveContext.Provider value={setActive} children={children} />
+));
+
+export const HoveredOption = React.forwardRef(({ id, hovered, ...props }, ref) => {
   const active = useContext(ActiveContext);
   const setActive = useContext(SetActiveContext);
   if (hovered) {
     setActive(id);
   }
   const isActive = active === id;
-  return <IsActive isActive={isActive} {...props} />;
-};
+  return <IsActive isActive={isActive} {...props} ref={ref} />;
+});
 
 export const Option = ({ id, onClick, ...props }) => {
   const active = useContext(ActiveContext);
@@ -38,9 +39,7 @@ export const Option = ({ id, onClick, ...props }) => {
   return <IsActive isActive={isActive} onClick={onClick} {...props} />;
 };
 
-const IsActive = React.memo(({ isActive, ...props }) => {
-  console.log(isActive);
-  console.log(props);
+const IsActive = React.memo(React.forwardRef(({ isActive, ...props }, ref) => {
   return (
     <div
       style={{
@@ -49,12 +48,13 @@ const IsActive = React.memo(({ isActive, ...props }) => {
         width: "80px"
       }}
       {...props}
+      ref={ref}
     >
       <pre>{isActive ? "_active_" : "inactive"}</pre>
       <RenderCount />
     </div>
   );
-});
+}));
 
 class RenderCount extends React.Component {
   renderCount = 0;
